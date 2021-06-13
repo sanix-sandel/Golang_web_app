@@ -9,11 +9,13 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
+	"sanix.net/snippetbox/pkg/models/postgres"
 )
 
 type application struct {
 	errorLog *log.Logger
 	infoLog  *log.Logger
+	snippets *postgres.SnippetModel
 }
 
 const (
@@ -51,6 +53,7 @@ func main() {
 	app := &application{
 		errorLog: errorLog,
 		infoLog:  infoLog,
+		snippets: &postgres.SnippetModel{DB: db},
 	}
 	//Initialize a new http.Server strcut
 	srv := &http.Server{
