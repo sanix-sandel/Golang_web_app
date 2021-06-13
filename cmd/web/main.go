@@ -1,10 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+
+	_ "github.com/lib/pq"
 )
 
 type application struct {
@@ -12,10 +16,22 @@ type application struct {
 	infoLog  *log.Logger
 }
 
+const (
+	host     = "127.0.0.1"
+	port     = 5432
+	user     = "sanix"
+	password = "19972017"
+	dbname   = "snippets"
+)
+
 func main() {
 
 	addr := flag.String("addr", ":4000", "HTTP network address")
-	flag.Parse()
+	//Command line flag for the MySQL DSN string
+	//dsn := flag.String("dsn", "root:19972017Russi@tcp(127.0.0.1:3306)/snippets?parseTime=true", "MySQL database")
+	var dsn = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
+	//flag.Parse()
 
 	//Create a logger for writing information messages. This three parameters:
 	//the destination to write the logs to (os.Stdout), a st prefix for message(INFO followed by a tab)
@@ -24,6 +40,13 @@ func main() {
 	//
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
+	db, err := openDB(dsn)
+	if err != nil {
+		errorLog.Fatal(err)
+	}
+
+	defer db.Close()
 
 	app := &application{
 		errorLog: errorLog,
@@ -37,8 +60,22 @@ func main() {
 	}
 
 	infoLog.Printf("Starting server on %s", *addr)
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	errorLog.Fatal(err)
 
 	//logger for error message
+}
+
+func openDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", dsn)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err = db.Ping(); err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
